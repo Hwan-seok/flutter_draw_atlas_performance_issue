@@ -1,7 +1,9 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:atlas_performance_benchmark/draw_atlas.dart';
+import 'package:atlas_performance_benchmark/draw_raw_atlas.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -39,12 +41,15 @@ class _MyHomeState extends State<MyHome> with SingleTickerProviderStateMixin {
   double atlasSize = 64;
 
   ui.Image? capturedImage;
+  RawAtlasBucket? rawAtlasBucket;
   Uint8List? capturedImageUin8List;
 
   ui.Image? flippImage;
+  RawAtlasBucket? flippRawAtlasBucket;
   Uint8List? flippImageUin8List;
 
   bool drawImageView = true;
+  bool drawRawAtlas = true;
   bool drawCapturedImage = false;
   bool drawFlippedImage = false;
 
@@ -53,6 +58,8 @@ class _MyHomeState extends State<MyHome> with SingleTickerProviderStateMixin {
     animationController.repeat();
     super.initState();
   }
+
+  bool isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -73,13 +80,18 @@ class _MyHomeState extends State<MyHome> with SingleTickerProviderStateMixin {
                           capturedImageUin8List!,
                           height: 100,
                         ),
-                      if (drawCapturedImage)
+                      if (drawCapturedImage && rawAtlasBucket != null)
                         CustomPaint(
                           size: const Size.square(200),
-                          painter: AtlasPainter(
-                            capturedImage!,
-                            animationController,
-                          ),
+                          painter: drawRawAtlas
+                              ? RawAtlasPainter(
+                                  rawAtlasBucket!,
+                                  animationController,
+                                )
+                              : AtlasPainter(
+                                  capturedImage!,
+                                  animationController,
+                                ),
                         ),
                     ],
                   ),
@@ -93,12 +105,17 @@ class _MyHomeState extends State<MyHome> with SingleTickerProviderStateMixin {
                           flippImageUin8List!,
                           height: 100,
                         ),
-                      if (drawFlippedImage)
+                      if (drawFlippedImage && flippRawAtlasBucket != null)
                         CustomPaint(
-                          painter: AtlasPainter(
-                            flippImage!,
-                            animationController,
-                          ),
+                          painter: drawRawAtlas
+                              ? RawAtlasPainter(
+                                  flippRawAtlasBucket!,
+                                  animationController,
+                                )
+                              : AtlasPainter(
+                                  flippImage!,
+                                  animationController,
+                                ),
                         ),
                     ],
                   ),
@@ -107,23 +124,20 @@ class _MyHomeState extends State<MyHome> with SingleTickerProviderStateMixin {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Text("using raw: $drawRawAtlas"),
+                // ElevatedButton(
+                //   onPressed: () =>
+                //       setState(() => drawImageView = !drawImageView),
+                //   child: const Text("render by Image.memory"),
+                // ),
                 ElevatedButton(
                   onPressed: () async {
-                    final image = capturedImage = await record(atlasSize);
-                    // capturedImageUin8List =
-                    //     await convertFromImageToBytes(image);
-                    // setState(() => null);
-                    final flippedImage = flippImage = await flip(image);
-                    // flippImageUin8List =
-                    //     await convertFromImageToBytes(flippedImage);
-                    // setState(() => null);
+                    setState(() {
+                      drawRawAtlas = !drawRawAtlas;
+                    });
                   },
-                  child: const Text("generate"),
-                ),
-                ElevatedButton(
-                  onPressed: () =>
-                      setState(() => drawImageView = !drawImageView),
-                  child: const Text("drawImageView"),
+                  child: const Text(
+                      "Toggle whether using drawRawAtlas or drawAtlas"),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -131,7 +145,7 @@ class _MyHomeState extends State<MyHome> with SingleTickerProviderStateMixin {
                       drawCapturedImage = !drawCapturedImage;
                     });
                   },
-                  child: const Text("Draw Atlas"),
+                  child: const Text("Toggle Drawing Atlas"),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -139,7 +153,7 @@ class _MyHomeState extends State<MyHome> with SingleTickerProviderStateMixin {
                       drawFlippedImage = !drawFlippedImage;
                     });
                   },
-                  child: const Text("Draw Flipped Atlas"),
+                  child: const Text("Toggle Drawing Flipped Atlas"),
                 ),
               ],
             ),
@@ -148,12 +162,29 @@ class _MyHomeState extends State<MyHome> with SingleTickerProviderStateMixin {
               right: 0,
               width: 300,
               child: Slider(
+                onChangeEnd: (value) async {
+                  isLoading = true;
+                  atlasSize = value;
+                  setState(() => null);
+                  final image = capturedImage = await record(atlasSize);
+                  final flippedImage = flippImage = await flip(image);
+
+                  rawAtlasBucket = createAtlas(image);
+                  flippRawAtlasBucket = createAtlas(flippedImage);
+
+                  // capturedImageUin8List =
+                  //     await convertFromImageToBytes(image);
+                  // flippImageUin8List =
+                  //     await convertFromImageToBytes(flippedImage);
+                  isLoading = false;
+                  setState(() => null);
+                },
                 divisions: (textureSize8k ~/ rectSize) - 1,
                 min: 32,
                 value: atlasSize,
                 max: 8192,
                 label: atlasSize.toString(),
-                onChanged: (value) => setState(() => atlasSize = value),
+                onChanged: (value) {},
               ),
             ),
           ],
@@ -206,6 +237,7 @@ draw(Canvas canvas, double atlasSize) {
   }
 }
 
+/// this is just a flip but any manipulating from original image should work
 Future<ui.Image> flip(ui.Image image) async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
@@ -217,4 +249,51 @@ Future<ui.Image> flip(ui.Image image) async {
   final flippedImage = await picture.toImage(image.width, image.height);
   picture.dispose();
   return flippedImage;
+}
+
+RawAtlasBucket createAtlas(ui.Image atlas) {
+  final atlasSize = atlas.width;
+  final oneRowRectCount = atlasSize ~/ rectSize;
+  final rectCount = pow(oneRowRectCount, 2).toInt();
+  final transforms = Float32List(rectCount * 4);
+  final rects = Float32List(rectCount * 4);
+
+  const scosAnchor = rectSize / 2; // 16
+
+  for (var idx = 0; idx < rectCount; idx++) {
+    final i = idx ~/ oneRowRectCount;
+    final j = idx - i * oneRowRectCount;
+
+    final left = i * rectSize;
+    final top = j * rectSize;
+
+    final int index0 = idx * 4;
+    final int index1 = index0 + 1;
+    final int index2 = index0 + 2;
+    final int index3 = index0 + 3;
+
+    rects[index0] = left;
+    rects[index1] = top;
+    rects[index2] = left + rectSize;
+    rects[index3] = top + rectSize;
+
+    transforms[index0] = 1;
+    transforms[index1] = 0;
+    transforms[index2] = left - scosAnchor;
+    transforms[index3] = top - scosAnchor;
+  }
+
+  return RawAtlasBucket(atlas: atlas, transforms: transforms, rects: rects);
+}
+
+class RawAtlasBucket {
+  final ui.Image atlas;
+  final Float32List transforms;
+  final Float32List rects;
+
+  RawAtlasBucket({
+    required this.atlas,
+    required this.transforms,
+    required this.rects,
+  });
 }
