@@ -29,10 +29,18 @@
      (Pressing ‘P’ on the command line toggles the overlay.)
 -->
 
+# The problem
+Using two drawAtlas with atlas and manipulated from it at the same time gets performance issue.
+Drawing either the original image or manipulated not at the same time has no performance loss. 
+But drawing both simultaneously impacts performance significantly.
+
+- It doesn't make changes whether using `drawAtlas` or `drawRawAtlas`.
+
+
 ## How to reproduce
-  1. Load an image and draw many rectangles by `drawAtlas()`
+  1. Load an image and draw it by `drawAtlas()`. You cannot see the issue yet.
   2. Flip the loaded image horizontally or manipulate it and then draw it by `drawAtlas()`.
-  3. Drawing either the original image or flipped not at the same time has no performance loss. But drawing both simultaneously impacts performance significantly.
+  3. You can see the jank. Switching the order from (1 => 2) to (2 => 1) also has a jank.
 
 ## Reproducible repo
 - https://github.com/Hwan-seok/flutter_draw_atlas_performance_issue
@@ -41,11 +49,6 @@
 ## Video of the performance issue
 
 https://user-images.githubusercontent.com/38072762/217324247-954659dc-fa26-4990-af8f-d833a706119a.mp4
-
-
-## More information
-- It doesn't make changes whether using `drawAtlas` or `drawRawAtlas`.
-
 
 
 
@@ -76,13 +79,13 @@ No issues found! (ran in 1.1s)
 <!-- Finally, paste the output of running `flutter doctor -v` here, with your device plugged in. -->
 
 ```
-[✓] Flutter (Channel stable, 3.3.10, on macOS 12.6 21G115 darwin-arm, locale ko-KR)
-    • Flutter version 3.3.10 on channel stable at 
+[✓] Flutter (Channel master, 3.8.0-6.0.pre.18, on macOS 12.6 21G115 darwin-arm64, locale ko-KR)
+    • Flutter version 3.8.0-6.0.pre.18 on channel master at 
     • Upstream repository https://github.com/flutter/flutter.git
-    • Framework revision 135454af32 (8 weeks ago), 2022-12-15 07:36:55 -0800
-    • Engine revision 3316dd8728
-    • Dart version 2.18.6
-    • DevTools version 2.15.0
+    • Framework revision e8eac0d047 (2 hours ago), 2023-02-07 18:21:18 +0200
+    • Engine revision b67690f696
+    • Dart version 3.0.0 (build 3.0.0-204.0.dev)
+    • DevTools version 2.21.1
 
 [✓] Android toolchain - develop for Android devices (Android SDK version 32.1.0-rc1)
     • Android SDK at 
@@ -100,7 +103,7 @@ No issues found! (ran in 1.1s)
     • Chrome at /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 
 [✓] Android Studio (version 2021.3)
-    • Android Studio at 
+    • Android Studio at
     • Flutter plugin can be installed from:
       🔨 https://plugins.jetbrains.com/plugin/9212-flutter
     • Dart plugin can be installed from:
@@ -123,7 +126,7 @@ No issues found! (ran in 1.1s)
       🔨 https://plugins.jetbrains.com/plugin/6351-dart
 
 [✓] IntelliJ IDEA Ultimate Edition (version 2022.2.4)
-    • IntelliJ at 
+    • IntelliJ 
     • Flutter plugin can be installed from:
       🔨 https://plugins.jetbrains.com/plugin/9212-flutter
     • Dart plugin can be installed from:
@@ -143,7 +146,7 @@ No issues found! (ran in 1.1s)
 [✓] Connected device (4 available)
     • SM F711N (mobile)           • R3CRC0329PF   • android-arm64  • Android 13 (API 33)
     • sdk gphone64 arm64 (mobile) • emulator-5554 • android-arm64  • Android 13 (API 33) (emulator)
-    • macOS (desktop)             • macos         • darwin-arm64   • macOS 12.6 21G115 darwin-arm
+    • macOS (desktop)             • macos         • darwin-arm64   • macOS 12.6 21G115 darwin-arm64
     • Chrome (web)                • chrome        • web-javascript • Google Chrome 109.0.5414.119
 
 [✓] HTTP Host Availability
