@@ -1,4 +1,4 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
+// ignore_for_file: public_member_api_docs, sort_constructors_first, avoid_returning_null_for_void
 import 'dart:math';
 import 'dart:ui' as ui;
 
@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      showPerformanceOverlay: true,
+      // showPerformanceOverlay: true,
       home: MyHome(),
     );
   }

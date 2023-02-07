@@ -15,7 +15,6 @@ class AtlasPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final atlasSize = atlas.width;
     final iterateCount = atlas.width / rectSize;
 
     final transforms = <RSTransform>[];
