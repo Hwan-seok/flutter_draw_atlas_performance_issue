@@ -42,13 +42,10 @@ class _MyHomeState extends State<MyHome> with SingleTickerProviderStateMixin {
 
   ui.Image? capturedImage;
   RawAtlasBucket? rawAtlasBucket;
-  Uint8List? capturedImageUin8List;
 
   ui.Image? flippImage;
   RawAtlasBucket? flippRawAtlasBucket;
-  Uint8List? flippImageUin8List;
 
-  bool drawImageView = true;
   bool drawRawAtlas = true;
   bool drawCapturedImage = false;
   bool drawFlippedImage = false;
@@ -58,8 +55,6 @@ class _MyHomeState extends State<MyHome> with SingleTickerProviderStateMixin {
     animationController.repeat();
     super.initState();
   }
-
-  bool isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -71,53 +66,35 @@ class _MyHomeState extends State<MyHome> with SingleTickerProviderStateMixin {
             const SizedBox.expand(),
             Column(
               children: [
-                if (capturedImage != null)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (drawImageView && capturedImageUin8List != null)
-                        Image.memory(
-                          capturedImageUin8List!,
-                          height: 100,
-                        ),
-                      if (drawCapturedImage && rawAtlasBucket != null)
-                        CustomPaint(
-                          size: const Size.square(200),
-                          painter: drawRawAtlas
-                              ? RawAtlasPainter(
-                                  rawAtlasBucket!,
-                                  animationController,
-                                )
-                              : AtlasPainter(
-                                  capturedImage!,
-                                  animationController,
-                                ),
-                        ),
-                    ],
+                if (capturedImage != null &&
+                    drawCapturedImage &&
+                    rawAtlasBucket != null)
+                  CustomPaint(
+                    size: const Size.square(200),
+                    painter: drawRawAtlas
+                        ? RawAtlasPainter(
+                            rawAtlasBucket!,
+                            animationController,
+                          )
+                        : AtlasPainter(
+                            capturedImage!,
+                            animationController,
+                          ),
                   ),
                 const SizedBox(height: 32),
-                if (flippImage != null)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (drawImageView && flippImageUin8List != null)
-                        Image.memory(
-                          flippImageUin8List!,
-                          height: 100,
-                        ),
-                      if (drawFlippedImage && flippRawAtlasBucket != null)
-                        CustomPaint(
-                          painter: drawRawAtlas
-                              ? RawAtlasPainter(
-                                  flippRawAtlasBucket!,
-                                  animationController,
-                                )
-                              : AtlasPainter(
-                                  flippImage!,
-                                  animationController,
-                                ),
-                        ),
-                    ],
+                if (flippImage != null &&
+                    drawFlippedImage &&
+                    flippRawAtlasBucket != null)
+                  CustomPaint(
+                    painter: drawRawAtlas
+                        ? RawAtlasPainter(
+                            flippRawAtlasBucket!,
+                            animationController,
+                          )
+                        : AtlasPainter(
+                            flippImage!,
+                            animationController,
+                          ),
                   ),
               ],
             ),
@@ -125,17 +102,8 @@ class _MyHomeState extends State<MyHome> with SingleTickerProviderStateMixin {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text("using raw: $drawRawAtlas"),
-                // ElevatedButton(
-                //   onPressed: () =>
-                //       setState(() => drawImageView = !drawImageView),
-                //   child: const Text("render by Image.memory"),
-                // ),
                 ElevatedButton(
-                  onPressed: () async {
-                    setState(() {
-                      drawRawAtlas = !drawRawAtlas;
-                    });
-                  },
+                  onPressed: () => setState(() => drawRawAtlas = !drawRawAtlas),
                   child: const Text(
                       "Toggle whether using drawRawAtlas or drawAtlas"),
                 ),
@@ -163,7 +131,6 @@ class _MyHomeState extends State<MyHome> with SingleTickerProviderStateMixin {
               width: 300,
               child: Slider(
                 onChangeEnd: (value) async {
-                  isLoading = true;
                   atlasSize = value;
                   setState(() => null);
                   final image = capturedImage = await record(atlasSize);
@@ -172,11 +139,6 @@ class _MyHomeState extends State<MyHome> with SingleTickerProviderStateMixin {
                   rawAtlasBucket = createAtlas(image);
                   flippRawAtlasBucket = createAtlas(flippedImage);
 
-                  // capturedImageUin8List =
-                  //     await convertFromImageToBytes(image);
-                  // flippImageUin8List =
-                  //     await convertFromImageToBytes(flippedImage);
-                  isLoading = false;
                   setState(() => null);
                 },
                 divisions: (textureSize8k ~/ rectSize) - 1,
@@ -218,9 +180,7 @@ draw(Canvas canvas, double atlasSize) {
   final iterateCount = atlasSize / rectSize;
   var paint = Paint();
 
-  // canvas.scale(1);
   for (var i = 0; i < iterateCount; i++) {
-    ///
     for (var j = 0; j < iterateCount; j++) {
       final rect = Rect.fromLTWH(
         i * rectSize,
@@ -237,7 +197,7 @@ draw(Canvas canvas, double atlasSize) {
   }
 }
 
-/// this is just a flip but any manipulating from original image should work
+/// this is just a flip but any manipulating from original image is the same.
 Future<ui.Image> flip(ui.Image image) async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
